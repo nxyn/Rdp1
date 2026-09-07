@@ -1,0 +1,10 @@
+{
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "terminals": [],
+  "install": "chmod +x .cursor/update.sh && ./.cursor/update.sh",
+  "start": "",
+  "repositoryDependencies": {}
+}
