@@ -30,7 +30,8 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -81,7 +82,8 @@ fun ChatScreen(
     onStop: () -> Unit,
     onRenameConversation: (Long, String) -> Unit,
     onDeleteConversation: (Long) -> Unit,
-    onExport: (Conversation) -> Unit
+    onExportMarkdown: (Conversation) -> Unit,
+    onExportJson: (Conversation) -> Unit
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -89,6 +91,7 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     var renameTarget by remember { mutableStateOf<Conversation?>(null) }
     var deleteTarget by remember { mutableStateOf<Conversation?>(null) }
+    var showConversationMenu by remember { mutableStateOf(false) }
     var renameText by remember { mutableStateOf("") }
 
     LaunchedEffect(uiState.messages.size, uiState.messages.lastOrNull()?.content) {
@@ -161,10 +164,46 @@ fun ChatScreen(
                         IconButton(onClick = onOpenSettings) {
                             Icon(Icons.Default.Settings, contentDescription = "Settings")
                         }
-                        IconButton(onClick = {
-                            uiState.conversation?.let { renameTarget = it; renameText = it.title }
-                        }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Conversation options")
+                        Box {
+                            IconButton(onClick = { showConversationMenu = true }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "Conversation options")
+                            }
+                            DropdownMenu(
+                                expanded = showConversationMenu,
+                                onDismissRequest = { showConversationMenu = false }
+                            ) {
+                                uiState.conversation?.let { conversation ->
+                                    DropdownMenuItem(
+                                        text = { Text("Rename") },
+                                        onClick = {
+                                            renameTarget = conversation
+                                            renameText = conversation.title
+                                            showConversationMenu = false
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Export Markdown") },
+                                        onClick = {
+                                            onExportMarkdown(conversation)
+                                            showConversationMenu = false
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Export JSON") },
+                                        onClick = {
+                                            onExportJson(conversation)
+                                            showConversationMenu = false
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Delete") },
+                                        onClick = {
+                                            deleteTarget = conversation
+                                            showConversationMenu = false
+                                        }
+                                    )
+                                }
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(

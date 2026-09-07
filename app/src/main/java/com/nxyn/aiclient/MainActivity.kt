@@ -25,6 +25,9 @@ import com.nxyn.aiclient.util.NetworkMonitor
 import kotlinx.coroutines.runBlocking
 
 class MainActivity : ComponentActivity() {
+
+    private enum class ExportFormat { MARKDOWN, JSON }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -98,7 +101,12 @@ class MainActivity : ComponentActivity() {
                             onDeleteConversation = { id ->
                                 chatViewModel.deleteConversation(id) {}
                             },
-                            onExport = { conversation -> exportConversation(conversation) }
+                            onExportMarkdown = { conversation ->
+                                exportConversation(conversation, ExportFormat.MARKDOWN)
+                            },
+                            onExportJson = { conversation ->
+                                exportConversation(conversation, ExportFormat.JSON)
+                            }
                         )
                     }
                     composable("settings") {
@@ -138,16 +146,23 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun exportConversation(conversation: Conversation) {
+    private fun exportConversation(conversation: Conversation, format: ExportFormat) {
         val appContainer = (application as AIClientApp).container
-        val markdown = runBlocking {
+        val exported = runBlocking {
             val messages = appContainer.conversationRepository.getMessages(conversation.id)
-            ExportHelper.toMarkdown(conversation, messages)
+            when (format) {
+                ExportFormat.MARKDOWN -> ExportHelper.toMarkdown(conversation, messages)
+                ExportFormat.JSON -> ExportHelper.toJson(conversation, messages)
+            }
+        }
+        val mimeType = when (format) {
+            ExportFormat.MARKDOWN -> "text/markdown"
+            ExportFormat.JSON -> "application/json"
         }
         val shareIntent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
+            type = mimeType
             putExtra(Intent.EXTRA_SUBJECT, conversation.title)
-            putExtra(Intent.EXTRA_TEXT, markdown)
+            putExtra(Intent.EXTRA_TEXT, exported)
         }
         startActivity(Intent.createChooser(shareIntent, "Export Chat"))
     }
